@@ -1,0 +1,71 @@
+version: '3'
+
+services:
+  opencart:
+    image: opencart:3.0.3.2
+    ports:
+      - "$WEBSITE_PORT:80"
+    expose:
+      - 80
+      - 443
+    links:
+      - mysql
+    environment:
+      VIRTUAL_HOST: $WEBSITE
+      LETSENCRYPT_HOST: $WEBSITE
+      LETSENCRYPT_EMAIL: admin@yoursite.domain
+      MYSQL_DATABASE: opencart
+      MYSQL_USER: root
+      MYSQL_ROOT_PASSWORD: root
+    extra_hosts:
+      - "$WEBSITE:$HOSTIP"
+    volumes:
+#     - ./html:/var/www/html
+#     - ./storage:/var/www/storage
+      - ./log:/var/log
+    restart: always
+    networks:
+      default:
+      proxy:
+
+  mysql:
+    image: mariadb:10.4.11
+    expose:
+      - '3306'
+    environment:
+      MYSQL_DATABASE: opencart
+      MYSQL_USER: root
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./db:/var/lib/mysql
+    restart: always
+    networks:
+      default:
+        aliases:
+          - mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    depends_on:
+      - mysql
+    ports:
+      - "8091:80"
+    networks:
+      default:
+    environment:
+      MYSQL_USERNAME: root
+      MYSQL_ROOT_PASSWORD: root
+      PMA_HOST: mysql
+
+
+networks:
+  default:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+    ipam:
+      driver: default
+  proxy:
+    external:
+      name: nginx-proxy
